@@ -11,7 +11,8 @@ $app.map: 'http://localhost:5000/hello', sub ($env) { [200, [], ['こんにち�
 $app.map: 'http://127.0.0.1:5000/world', sub ($env) { [200, [], ['世界'.encode('utf-8')]] };
 $app
   .map('/perl6', sub ($env) { [200, [], ['perl6'.encode('ascii')]] })
-  .map('/perl5', sub ($env) { [200, [], ['perl5'.encode('ascii')]] });
+  .map('/perl5', sub ($env) { [200, [], ['perl5'.encode('ascii')]] })
+  .map('/path',  sub ($env) { [200, [], [$env<PATH_INFO>]] });
 
 my $client = -> $cb {
     my ($req, $res);
@@ -50,6 +51,22 @@ my $client = -> $cb {
     $res = $cb($req);
     is $res.code, 200;
     is $res.content.decode, "perl5";
+
+    $req = HTTP::Request.new(GET => "/path");
+    $res = $cb($req);
+    is $res.content.decode, "";
+    $req = HTTP::Request.new(GET => "/path/");
+    $res = $cb($req);
+    is $res.content.decode, "/";
+    $req = HTTP::Request.new(GET => "/path/bar");
+    $res = $cb($req);
+    is $res.content.decode, "/bar";
+    $req = HTTP::Request.new(GET => "/path/bar/");
+    $res = $cb($req);
+    is $res.content.decode, "/bar/";
+    $req = HTTP::Request.new(GET => "/pathbar");
+    $res = $cb($req);
+    is $res.code, 404;
 };
 
 test-psgi $app, $client;
